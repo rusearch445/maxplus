@@ -52,20 +52,38 @@ jobs:
       - name: Prepare Tauri iOS
         run: bun tauri ios init --ci
 
-      - name: Generate Icons
-        run: bun run tauri icon static/favicon.png
+      - name: Generate Icons (color)
+        run: bun run tauri icon ios-icons/icon-color.png
 
       - name: Fix Swift Package dependencies
         run: |
           cargo fetch --manifest-path src-tauri/Cargo.toml
           find ~/.cargo/registry/src -name "Package.resolved" -delete 2>/dev/null || true
 
-      - name: Build iOS
-        run: bun tauri ios build --ci --target aarch64 --no-sign
+      - name: Build iOS (color icon)
+        run: |
+          bun tauri ios build --ci --target aarch64 --no-sign
+          mkdir -p dist
+          cp src-tauri/gen/apple/build/arm64/*.ipa dist/maxplus-color.ipa
 
-      - name: Upload Artifact
+      - name: Build iOS (black-and-white icon)
+        run: |
+          bun run tauri icon ios-icons/icon-bw.png
+          rm -f src-tauri/gen/apple/build/arm64/*.ipa
+          bun tauri ios build --ci --target aarch64 --no-sign
+          cp src-tauri/gen/apple/build/arm64/*.ipa dist/maxplus-bw.ipa
+          ls -la dist
+
+      - name: Upload Artifact (color)
         uses: actions/upload-artifact@v4
         with:
-          name: maxplus-ios-unsigned
-          path: src-tauri/gen/apple/build/arm64/*.ipa
+          name: maxplus-ios-color-unsigned
+          path: dist/maxplus-color.ipa
+          if-no-files-found: error
+
+      - name: Upload Artifact (black-and-white)
+        uses: actions/upload-artifact@v4
+        with:
+          name: maxplus-ios-bw-unsigned
+          path: dist/maxplus-bw.ipa
           if-no-files-found: error
