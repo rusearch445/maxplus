@@ -16,6 +16,8 @@
   import { add as addLog } from '$lib/stores/logs';
   import { showAlert } from '$lib/utils/alert';
   import Alerts from '$components/main/Alerts.svelte';
+  import ConfirmModal from "$components/main/ConfirmModal.svelte";
+  import { joinPrompt } from "$lib/stores/joinPrompt";
   import ProfileModal from "$components/ProfileModal.svelte";
   import AvatarGalleryModal from "$components/main/AvatarGalleryModal.svelte";
   import DevSettings from "$components/main/dev/Settings.svelte";
@@ -242,6 +244,17 @@
 {/if}
 
 <Alerts />
+{#if $joinPrompt}
+  <ConfirmModal
+    title={$joinPrompt.title}
+    message={$joinPrompt.message}
+    confirmText={$joinPrompt.confirmText}
+    cancelText="Отмена"
+    isDangerous={false}
+    on:confirm={() => $joinPrompt?.resolve(true)}
+    on:cancel={() => $joinPrompt?.resolve(false)}
+  />
+{/if}
 <GlobalMediaPlayer />
 <MediaPlaylistModal />
 <TraceOverlay />

@@ -1853,7 +1853,8 @@ export default class MobileApi extends BaseAPI {
   async joinChannel(link) {
     await this.waitSync();
     const response = await invoke("join_channel", { link });
-    const { chat } = response;
+    const chat = response?.chat;
+    if (!chat?.id) return null;
 
     currentRealChats.update(chats => [ ...chats, chat.id ]);
     getChat(chat.id).chatInfo.set(chat);

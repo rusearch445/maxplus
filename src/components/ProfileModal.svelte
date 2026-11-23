@@ -922,6 +922,7 @@
 
   async function joinChannel() {
     const response = await $API.joinChannel(chat.link);
+    if (!response) return showToast("Запрос на вступление отправлен");
     Object.keys(response).forEach(key => chat[key] = response[key]);
     showToast("Вы подписались на канал");
   }

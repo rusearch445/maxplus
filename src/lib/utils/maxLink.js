@@ -133,6 +133,53 @@ export function extractMaxUrlInfo(rawInput) {
   };
 }
 
+async function isChatAccessible(chatId, api) {
+  try {
+    const { getChat } = await import("../stores/messages");
+    if (getChat(chatId)?.getInfo?.()) return true;
+  } catch {}
+  try {
+    const res = api && typeof api.getChat === "function"
+      ? await api.getChat(chatId)
+      : await invoke("get_chats", { chatIds: [chatId] });
+    return Boolean(res?.chats?.length);
+  } catch {
+    return false;
+  }
+}
+
+// Invite links resolve to a chat the user may not be a member of yet. Opening it
+// directly fails ("чат закрыт"), so ask first and join, like the official client.
+// Returns true when the chat can be opened.
+async function ensureChatJoined(chat, link, api) {
+  const chatId = chat.id;
+  if (await isChatAccessible(chatId, api)) return true;
+
+  const isChannel = chat.type === "CHANNEL";
+  const count = chat.participantsCount ?? chat.membersCount ?? null;
+  const title = chat.title || (isChannel ? "Канал" : "Чат");
+  const { askJoinChat } = await import("../stores/joinPrompt");
+  const accepted = await askJoinChat({
+    title: isChannel ? "Подписаться на канал?" : "Вступить в чат?",
+    message: count ? `${title} · участников: ${count}` : title,
+    confirmText: isChannel ? "Подписаться" : "Вступить",
+  });
+  if (!accepted) return false;
+
+  try {
+    const joined = api && typeof api.joinChannel === "function"
+      ? await api.joinChannel(link)
+      : (await invoke("join_channel", { link }))?.chat;
+    if (joined?.id || await isChatAccessible(chatId, api)) return true;
+    showAlert("Запрос отправлен", "Если в чате включены заявки, дождитесь одобрения администратора.");
+    return false;
+  } catch (err) {
+    console.error(err);
+    showAlert(parseApiError(err));
+    return false;
+  }
+}
+
 export async function processMaxLink(targetUrl, { currentUserId, api, onOpenChat, onLaunchApp } = {}) {
   const info = extractMaxUrlInfo(targetUrl);
   if (!info || !info.isMax) return false;
@@ -248,6 +295,11 @@ export async function processMaxLink(targetUrl, { currentUserId, api, onOpenChat
       if (contactId && currentUserId) {
         targetChatId = Number(BigInt(currentUserId) ^ BigInt(contactId));
       }
+    }
+
+    if (targetChatId && resolved?.chat?.id) {
+      const proceed = await ensureChatJoined(resolved.chat, info.canonicalUrl, api);
+      if (!proceed) return true;
     }
 
     if (targetChatId) {
