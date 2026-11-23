@@ -74,6 +74,16 @@ jobs:
           cp src-tauri/gen/apple/build/arm64/*.ipa dist/maxplus-bw.ipa
           ls -la dist
 
+      - name: Verify ATS exception for local proxy is in the IPA
+        run: |
+          set -e
+          for ipa in dist/*.ipa; do
+            rm -rf /tmp/ipa && mkdir /tmp/ipa && unzip -q "$ipa" -d /tmp/ipa
+            plist=$(ls -d /tmp/ipa/Payload/*.app)/Info.plist
+            plutil -p "$plist" | grep -A14 NSAppTransportSecurity
+            plutil -extract NSAppTransportSecurity.NSAllowsLocalNetworking raw "$plist" | grep -qx true
+          done
+
       - name: Upload Artifact (color)
         uses: actions/upload-artifact@v4
         with:
