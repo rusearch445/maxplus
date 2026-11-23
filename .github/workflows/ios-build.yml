@@ -36,7 +36,7 @@ jobs:
 
       - name: Patch Cargo.toml for CI
         run: |
-          sed -i '' 's|path = "../../rumax"|git = "https://github.com/junioraww/rumax.git", branch = "main"|g' src-tauri/Cargo.toml
+          sed -i '' 's|path = "../../rumax"|git = "https://github.com/junioraww/rumax.git", rev = "f9d99ba81b03f879524142f2dc8a7bddc0257621"|g' src-tauri/Cargo.toml
           sed -i '' '/libwebrtc/d' src-tauri/Cargo.toml
 
           echo "Cargo.toml updated for cloud build:"
